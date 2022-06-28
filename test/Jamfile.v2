@@ -141,7 +141,7 @@ compile-fail _compile-fail-result_4.cpp ;
 compile-fail _compile-fail-verbose_diagnostic_info.cpp ;
 
 exe capture_in_exception : ../example/capture_in_exception.cpp : <threading>single:<build>no <exception-handling>off:<build>no <variant>leaf_debug_capture0:<build>no <variant>leaf_release_capture0:<build>no ;
-exe capture_in_result : ../example/capture_in_result.cpp : <threading>single:<build>no <variant>leaf_debug_capture0:<build>no <variant>leaf_release_capture0:<build>no ;
+exe capture_in_result : ../example/capture_in_result.cpp : <threading>single:<build>no <variant>leaf_debug_capture0:<build>no <variant>leaf_release_capture0:<build>no <variant>leaf_debug_embedded:<build>no <variant>leaf_release_embedded:<build>no ;
 exe error_log : ../example/error_log.cpp : <exception-handling>off:<build>no ;
 exe error_trace : ../example/error_trace.cpp : <exception-handling>off:<build>no ;
 exe exception_to_result : ../example/exception_to_result.cpp : <exception-handling>off:<build>no ;
