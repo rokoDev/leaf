@@ -74,18 +74,18 @@ namespace leaf_detail
     template <int I, class Tuple>
     struct tuple_for_each_preload
     {
-        BOOST_LEAF_CONSTEXPR static void trigger( Tuple & tup, int err_id ) noexcept
+        BOOST_LEAF_CONSTEXPR static void trigger( Tuple & tup, diag_context dc, int err_id ) noexcept
         {
             BOOST_LEAF_ASSERT((err_id&3)==1);
-            tuple_for_each_preload<I-1,Tuple>::trigger(tup,err_id);
-            std::get<I-1>(tup).trigger(err_id);
+            tuple_for_each_preload<I-1,Tuple>::trigger(tup,dc,err_id);
+            std::get<I-1>(tup).trigger(dc,err_id);
         }
     };
 
     template <class Tuple>
     struct tuple_for_each_preload<0, Tuple>
     {
-        BOOST_LEAF_CONSTEXPR static void trigger( Tuple const &, int ) noexcept { }
+        BOOST_LEAF_CONSTEXPR static void trigger( Tuple const &, diag_context, int ) noexcept { }
     };
 
     template <class E>
@@ -103,7 +103,7 @@ namespace leaf_detail
         {
         }
 
-        BOOST_LEAF_CONSTEXPR void trigger( int err_id ) noexcept
+        BOOST_LEAF_CONSTEXPR void trigger( diag_context dc, int err_id ) noexcept
         {
             BOOST_LEAF_ASSERT((err_id&3)==1);
             if( s_ )
@@ -117,7 +117,7 @@ namespace leaf_detail
                 int c = tls::read_uint32<tls_tag_unexpected_enabled_counter>();
                 BOOST_LEAF_ASSERT(c>=0);
                 if( c )
-                    load_unexpected(err_id, std::move(e_));
+                    load_unexpected(dc, err_id, std::move(e_));
             }
 #endif
         }
@@ -138,7 +138,7 @@ namespace leaf_detail
         {
         }
 
-        BOOST_LEAF_CONSTEXPR void trigger( int err_id ) noexcept
+        BOOST_LEAF_CONSTEXPR void trigger( diag_context dc, int err_id ) noexcept
         {
             BOOST_LEAF_ASSERT((err_id&3)==1);
             if( s_ )
@@ -152,7 +152,7 @@ namespace leaf_detail
                 int c = tls::read_uint32<tls_tag_unexpected_enabled_counter>();
                 BOOST_LEAF_ASSERT(c>=0);
                 if( c )
-                    load_unexpected(err_id, std::forward<E>(f_()));
+                    load_unexpected(dc, err_id, std::forward<E>(f_()));
             }
 #endif
         }
@@ -176,7 +176,7 @@ namespace leaf_detail
         {
         }
 
-        BOOST_LEAF_CONSTEXPR void trigger( int err_id ) noexcept
+        BOOST_LEAF_CONSTEXPR void trigger( diag_context, int err_id ) noexcept
         {
             BOOST_LEAF_ASSERT((err_id&3)==1);
             if( s_ )
@@ -219,7 +219,10 @@ namespace leaf_detail
             if( moved_ )
                 return;
             if( auto id = id_.check_id() )
-                tuple_for_each_preload<sizeof...(Item),decltype(p_)>::trigger(p_,id);
+            {
+                diag_context dc = diag_ctx();
+                tuple_for_each_preload<sizeof...(Item),decltype(p_)>::trigger(p_,dc,id);
+            }
         }
     };
 

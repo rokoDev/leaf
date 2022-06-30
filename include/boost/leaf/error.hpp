@@ -182,6 +182,14 @@ namespace leaf_detail
 
 }
 
+#else
+
+namespace leaf_detail
+{
+    class BOOST_LEAF_SYMBOL_VISIBLE e_unexpected_count;
+    class BOOST_LEAF_SYMBOL_VISIBLE e_unexpected_info;
+}
+
 #endif
 
 } }
@@ -207,6 +215,8 @@ struct BOOST_LEAF_SYMBOL_VISIBLE e_source_location
 
 namespace leaf_detail
 {
+    struct diag_context;
+
     template <class E>
     class BOOST_LEAF_SYMBOL_VISIBLE slot:
         optional<E>
@@ -242,7 +252,7 @@ namespace leaf_detail
             tls::write_ptr<slot<E>>(prev_);
         }
 
-        BOOST_LEAF_CONSTEXPR void propagate( int err_id ) noexcept;
+        BOOST_LEAF_CONSTEXPR void propagate( diag_context, int err_id ) noexcept;
 
         template <class CharT, class Traits>
         void print( std::basic_ostream<CharT, Traits> & os, int key_to_print ) const
@@ -269,61 +279,77 @@ namespace leaf_detail
         using impl::value;
     };
 
+#if !BOOST_LEAF_CFG_DIAGNOSTICS
+    template <> class BOOST_LEAF_SYMBOL_VISIBLE slot<e_unexpected_count>;
+    template <> class BOOST_LEAF_SYMBOL_VISIBLE slot<e_unexpected_info>;
+#endif
+
+    struct diag_context
+    {
+        slot<e_unexpected_count> * unc;
+        slot<e_unexpected_info> * uni;
+    };
+
+    inline diag_context diag_ctx() noexcept
+    {
 #if BOOST_LEAF_CFG_DIAGNOSTICS
+        int const c = tls::read_uint32<tls_tag_unexpected_enabled_counter>();
+        BOOST_LEAF_ASSERT(c>=0);
+        if( c )
+            return diag_context { tls::read_ptr<slot<e_unexpected_count>>(), tls::read_ptr<slot<e_unexpected_info>>() };
+        else
+#endif
+            return diag_context { nullptr, nullptr };
+    }
 
     template <class E>
-    BOOST_LEAF_CONSTEXPR inline void load_unexpected_count( int err_id ) noexcept
+    BOOST_LEAF_CONSTEXPR inline void load_unexpected_count( slot<e_unexpected_count> * sl, int err_id ) noexcept
     {
-        if( slot<e_unexpected_count> * sl = tls::read_ptr<slot<e_unexpected_count>>() )
+#if BOOST_LEAF_CFG_DIAGNOSTICS
+        if( sl )
         {
             if( e_unexpected_count * unx = sl->has_value(err_id) )
                 ++unx->count;
             else
                 sl->put(err_id, e_unexpected_count(&type<E>));
         }
+#endif
     }
 
     template <class E>
-    BOOST_LEAF_CONSTEXPR inline void load_unexpected_info( int err_id, E && e ) noexcept
+    BOOST_LEAF_CONSTEXPR inline void load_unexpected_info( slot<e_unexpected_info> * sl,  int err_id, E && e ) noexcept
     {
-        if( slot<e_unexpected_info> * sl = tls::read_ptr<slot<e_unexpected_info>>() )
+#if BOOST_LEAF_CFG_DIAGNOSTICS
+        if( sl )
         {
             if( e_unexpected_info * unx = sl->has_value(err_id) )
                 unx->add(std::forward<E>(e));
             else
                 sl->put(err_id, e_unexpected_info()).add(std::forward<E>(e));
         }
-    }
-
-    template <class E>
-    BOOST_LEAF_CONSTEXPR inline void load_unexpected( int err_id, E && e  ) noexcept
-    {
-        load_unexpected_count<E>(err_id);
-        load_unexpected_info(err_id, std::forward<E>(e));
-    }
-
 #endif
+    }
 
     template <class E>
-    BOOST_LEAF_CONSTEXPR inline void slot<E>::propagate( int err_id ) noexcept
+    BOOST_LEAF_CONSTEXPR inline void load_unexpected( diag_context dc, int err_id, E && e  ) noexcept
+    {
+        load_unexpected_count<E>(dc.unc, err_id);
+        load_unexpected_info(dc.uni, err_id, std::forward<E>(e));
+    }
+
+    template <class E>
+    BOOST_LEAF_CONSTEXPR inline void slot<E>::propagate( diag_context dc, int err_id ) noexcept
     {
         if( this->key()!=err_id && err_id!=0 )
             return;
         if( impl * p = tls::read_ptr<slot<E>>() )
             *p = std::move(*this);
-#if BOOST_LEAF_CFG_DIAGNOSTICS
         else
-        {
-            int c = tls::read_uint32<tls_tag_unexpected_enabled_counter>();
-            BOOST_LEAF_ASSERT(c>=0);
-            if( c )
-                load_unexpected(err_id, std::move(*this).value(err_id));
-        }
-#endif
+            load_unexpected(dc, err_id, std::move(*this).value(err_id));
     }
 
     template <class E>
-    BOOST_LEAF_CONSTEXPR inline int load_slot( int err_id, E && e ) noexcept
+    BOOST_LEAF_CONSTEXPR inline int load_slot( diag_context dc, int err_id, E && e ) noexcept
     {
         static_assert(!std::is_pointer<E>::value, "Error objects of pointer types are not allowed");
         static_assert(!std::is_same<typename std::decay<E>::type, error_id>::value, "Error objects of type error_id are not allowed");
@@ -331,15 +357,8 @@ namespace leaf_detail
         BOOST_LEAF_ASSERT((err_id&3)==1);
         if( slot<T> * p = tls::read_ptr<slot<T>>() )
             (void) p->put(err_id, std::forward<E>(e));
-#if BOOST_LEAF_CFG_DIAGNOSTICS
         else
-        {
-            int c = tls::read_uint32<tls_tag_unexpected_enabled_counter>();
-            BOOST_LEAF_ASSERT(c>=0);
-            if( c )
-                load_unexpected(err_id, std::forward<E>(e));
-        }
-#endif
+                load_unexpected(dc, err_id, std::forward<E>(e));
         return 0;
     }
 
@@ -409,25 +428,25 @@ namespace leaf_detail
     template <class E>
     struct load_item<E, -1>
     {
-        BOOST_LEAF_CONSTEXPR static int load( int err_id, E && e ) noexcept
+        BOOST_LEAF_CONSTEXPR static int load( diag_context dc, int err_id, E && e ) noexcept
         {
-            return load_slot(err_id, std::forward<E>(e));
+            return load_slot(dc, err_id, std::forward<E>(e));
         }
     };
 
     template <class F>
     struct load_item<F, 0>
     {
-        BOOST_LEAF_CONSTEXPR static int load( int err_id, F && f ) noexcept
+        BOOST_LEAF_CONSTEXPR static int load( diag_context dc, int err_id, F && f ) noexcept
         {
-            return load_slot(err_id, std::forward<F>(f)());
+            return load_slot(dc, err_id, std::forward<F>(f)());
         }
     };
 
     template <class F>
     struct load_item<F, 1>
     {
-        BOOST_LEAF_CONSTEXPR static int load( int err_id, F && f ) noexcept
+        BOOST_LEAF_CONSTEXPR static int load( diag_context, int err_id, F && f ) noexcept
         {
             return accumulate_slot(err_id, std::forward<F>(f));
         }
@@ -471,7 +490,7 @@ namespace leaf_detail
             else
             {
                 err_id = new_id();
-                (void) load_slot(err_id, ec);
+                (void) load_slot({}, err_id, ec);
                 return (err_id&~3)|1;
             }
         }
@@ -541,9 +560,11 @@ public:
     template <class... Item>
     BOOST_LEAF_CONSTEXPR error_id load( Item && ... item ) const noexcept
     {
+        using namespace leaf_detail;
         if( int err_id = value() )
         {
-            int const unused[ ] = { 42, leaf_detail::load_item<Item>::load(err_id, std::forward<Item>(item))... };
+            diag_context dc = diag_ctx();
+            int const unused[ ] = { 42, load_item<Item>::load(dc, err_id, std::forward<Item>(item))... };
             (void) unused;
         }
         return *this;
