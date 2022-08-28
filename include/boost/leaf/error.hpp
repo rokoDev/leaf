@@ -112,8 +112,8 @@ namespace leaf_detail
         char const * (*first_type)();
         int count;
 
-        BOOST_LEAF_CONSTEXPR explicit e_unexpected_count(char const * (*first_type)()) noexcept:
-            first_type(first_type),
+        BOOST_LEAF_CONSTEXPR explicit e_unexpected_count(char const * (*first_type_arg)()) noexcept:
+            first_type(first_type_arg),
             count(1)
         {
         }
