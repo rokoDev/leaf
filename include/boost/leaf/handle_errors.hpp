@@ -199,6 +199,7 @@ namespace leaf_detail
         template <class Tup>
         BOOST_LEAF_CONSTEXPR static diagnostic_info_ get( Tup const & tup, error_info const & ei ) noexcept
         {
+            ignore(tup);
             return diagnostic_info_(ei);
         }
     };
@@ -309,6 +310,7 @@ namespace leaf_detail
         template <class Tup>
         BOOST_LEAF_CONSTEXPR static verbose_diagnostic_info_ get( Tup const & tup, error_info const & ei ) noexcept
         {
+            ignore(tup);
             return verbose_diagnostic_info_(ei);
         }
     };
@@ -934,6 +936,7 @@ namespace leaf_detail
         template <class Tup>
         BOOST_LEAF_CONSTEXPR static T * check( Tup & tup, error_info const & ei ) noexcept
         {
+            ignore(tup);
             using boost_exception = dependent_type_t<T, boost::exception>;
             if( auto * be = get_exception<boost_exception>(ei) )
                 return exception_detail::get_info<boost::error_info<Tag, T>>::get(*be);

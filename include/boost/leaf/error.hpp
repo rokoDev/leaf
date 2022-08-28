@@ -261,6 +261,8 @@ namespace leaf_detail
                     diagnostic<E>::print(os, value(k));
                     (os << '\n').flush();
                 }
+#else
+            ignore(os, key_to_print);
 #endif
         }
 
@@ -444,7 +446,11 @@ namespace leaf_detail
         bool equivalent( int,  std::error_condition const & ) const noexcept final override { return false; }
         bool equivalent( std::error_code const &, int ) const noexcept final override { return false; }
         char const * name() const noexcept final override { return "LEAF error"; }
-        std::string message( int condition ) const final override { return name(); }
+        std::string message( int condition ) const final override
+        { 
+            ignore(condition);
+            return name();
+        }
     public:
         ~leaf_category() noexcept final override { }
     };

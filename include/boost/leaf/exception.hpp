@@ -229,6 +229,7 @@ namespace leaf_detail
 {
     inline error_id catch_exceptions_helper( std::exception const & ex, leaf_detail_mp11::mp_list<> )
     {
+        ignore(ex);
         return leaf::new_error(std::current_exception());
     }
 
