@@ -62,9 +62,21 @@ namespace tls
     }
 
     template <class Tag>
+    std::int32_t read_int32() noexcept
+    {
+        return static_cast<int32_t>(tagged_uint32<Tag>::x);
+    }
+
+    template <class Tag>
     void write_uint32( std::uint32_t x ) noexcept
     {
         tagged_uint32<Tag>::x = x;
+    }
+
+    template <class Tag>
+    void write_int32( std::int32_t x ) noexcept
+    {
+        tagged_uint32<Tag>::x = static_cast<std::uint32_t>(x);
     }
 
     template <class Tag>

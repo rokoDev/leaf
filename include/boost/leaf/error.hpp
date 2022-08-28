@@ -314,7 +314,7 @@ namespace leaf_detail
 #if BOOST_LEAF_CFG_DIAGNOSTICS
         else
         {
-            int c = tls::read_uint32<tls_tag_unexpected_enabled_counter>();
+            int c = tls::read_int32<tls_tag_unexpected_enabled_counter>();
             BOOST_LEAF_ASSERT(c>=0);
             if( c )
                 load_unexpected(err_id, std::move(*this).value(err_id));
@@ -334,7 +334,7 @@ namespace leaf_detail
 #if BOOST_LEAF_CFG_DIAGNOSTICS
         else
         {
-            int c = tls::read_uint32<tls_tag_unexpected_enabled_counter>();
+            int c = tls::read_int32<tls_tag_unexpected_enabled_counter>();
             BOOST_LEAF_ASSERT(c>=0);
             if( c )
                 load_unexpected(err_id, std::forward<E>(e));
@@ -379,20 +379,20 @@ namespace leaf_detail
     };
 
     template <class T>
-    atomic_unsigned_int id_factory<T>::counter(-3);
+    atomic_unsigned_int id_factory<T>::counter(static_cast<unsigned int>(-3));
 
     inline int current_id() noexcept
     {
         auto id = tls::read_uint32<tls_tag_id_factory_current_id>();
         BOOST_LEAF_ASSERT(id==0 || (id&3)==1);
-        return id;
+        return static_cast<int>(id);
     }
 
     inline int new_id() noexcept
     {
         auto id = id_factory<>::generate_next_id();
         tls::write_uint32<tls_tag_id_factory_current_id>(id);
-        return id;
+        return static_cast<int>(id);
     }
 }
 

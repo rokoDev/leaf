@@ -128,10 +128,22 @@ namespace tls
     }
 
     template <class Tag>
+    std::int32_t read_int32() noexcept
+    {
+        return static_cast<int32_t>(read_uint32<Tag>());
+    }
+
+    template <class Tag>
     void write_uint32( std::uint32_t x ) noexcept
     {
         static_assert(sizeof(std::intptr_t) >= sizeof(std::uint32_t), "Incompatible tls_array implementation");
         write_ptr<Tag>((Tag *) (void *) (std::intptr_t) x);
+    }
+
+    template <class Tag>
+    void write_int32( std::int32_t x ) noexcept
+    {
+        write_uint32<Tag>(static_cast<uint32_t>(x));
     }
 
     template <class Tag>
