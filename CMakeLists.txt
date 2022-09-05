@@ -10,7 +10,7 @@ project(boost_leaf VERSION "${BOOST_SUPERPROJECT_VERSION}" LANGUAGES CXX)
 add_library(boost_leaf INTERFACE)
 add_library(Boost::leaf ALIAS boost_leaf)
 
-target_include_directories(boost_leaf INTERFACE include)
+target_include_directories(boost_leaf SYSTEM INTERFACE include)
 
 if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/CMakeLists.txt")
 
